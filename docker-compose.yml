@@ -1,0 +1,86 @@
+networks:
+  dwms_integrated_network:
+    driver: bridge
+
+services:
+  # 🌐 GERBANG PINTU MASUK UTAMA (NGINX EDGE LAYER)
+  nginx-gateway:
+    image: nginx:alpine
+    container_name: nginx-gateway
+    ports:
+      - "5430:5430" # Port masuk untuk Hub Pusat / Dashboard
+      - "5431:5431" # Port masuk untuk Scanner Gudang 1
+      - "5432:5432" # Port masuk untuk Scanner Gudang 2
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - dwms_integrated_network
+    depends_on:
+      - pg-hub
+      - redis-cache
+
+  # 🏭 DATABASE GUDANG / PLANT 1
+  pg-plant1:
+    image: postgres:15-alpine
+    container_name: pg-plant1
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: db_gudang_1
+    volumes:
+      - ./sql/init-plant1.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - dwms_integrated_network
+
+  # 🏭 DATABASE GUDANG / PLANT 2
+  pg-plant2:
+    image: postgres:15-alpine
+    container_name: pg-plant2
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: db_gudang_2
+    volumes:
+      - ./sql/init-plant2.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - dwms_integrated_network
+
+  # 🗄️ DATABASE PUSAT AGREGATOR (FDW LAYER)
+  pg-hub:
+    image: postgres:15-alpine
+    container_name: pg-hub
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: db_hub_pusat
+    volumes:
+      - ./sql/init-hub.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - dwms_integrated_network
+    depends_on:
+      - pg-plant1
+      - pg-plant2
+
+  # ⚡ CACHING LAYER (REDIS)
+  redis-cache:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - dwms_integrated_network
+
+  # 📊 VISUALIZATION LAYER
+  ppic-dashboard:
+    image: python:3.10-slim
+    container_name: ppic-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./dashboard:/app
+    working_dir: /app
+    command: sh -c "pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt && streamlit run app.py --server.port=8501 --server.address=0.0.0.0"
+    networks:
+      - dwms_integrated_network
+    depends_on:
+      - pg-hub

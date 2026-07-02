@@ -107,7 +107,3 @@ Buka `http://localhost:8501` di browser.
 - Tab **Finish Good** — harus 5 baris
 - Klik tombol **Segarkan** — cache Redis dihapus, data di-reload dari hub
 
-## Referensi
-
-- ERD & diagram alur: [`ERD.md`](ERD.md)
-- Konfigurasi agent: [`AGENTS.md`](AGENTS.md)

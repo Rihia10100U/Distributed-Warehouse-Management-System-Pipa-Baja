@@ -275,7 +275,4 @@ psql -h localhost -p 5432 -U admin -d db_gudang_2 -c "SELECT * FROM raw_material
 | **Caching** | Redis mereduksi beban query (TTL 60 detik, fallback aman) |
 | **Gateway** | Nginx TCP stream memetakan port eksternal ke internal |
 
-## Referensi
 
-- ERD & diagram alur: [`ERD.md`](ERD.md)
-- Konfigurasi agent & arsitektur: [`AGENTS.md`](AGENTS.md)
